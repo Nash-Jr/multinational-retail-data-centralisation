@@ -22,7 +22,7 @@ class DatabaseConnector:
             try:
                 data = yaml.safe_load(file)
                 print(data)  # Add this line to check the content of data
-                return cls(
+                return DatabaseConnector(
                     host=data['RDS_HOST'],
                     database=data['RDS_DATABASE'],
                     user=data['RDS_USER'],
@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     # Create an instance of the DatabaseConnector class
     db_connector = DatabaseConnector.from_yaml(
-        r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\.gitignore\db_creds.yml")
+        r"C:/Users/nacho/New folder/AiCore/multinational-retail-data-centralisation/.gitignore/db_creds.yml")
 
     # Use the db_connector instance for further operations
     result_df = db_connector.retrieve_pdf_data(args.url)

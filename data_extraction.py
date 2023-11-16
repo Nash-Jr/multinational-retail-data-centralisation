@@ -14,8 +14,8 @@ class DataExtractor:
         self.metadata.reflect(bind=self.rds_engine)
 
     def init_db_engine(self):
-        db_credentials = self.read_db_creds(
-            r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\.gitignore\db_creds.yml")
+        db_credentials = DatabaseConnector.read_db_creds(
+            r"C:/Users/nacho/New folder/AiCore/multinational-retail-data-centralisation/.gitignore/db_creds.yml")
         engine = create_engine(
             f"postgresql://{db_credentials['RDS_USER']}:{db_credentials['RDS_PASSWORD']}@{db_credentials['RDS_HOST']}:{db_credentials['RDS_PORT']}/{db_credentials['RDS_DATABASE']}"
         )

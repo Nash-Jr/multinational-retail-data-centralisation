@@ -4,7 +4,7 @@ from data_cleaning import DataCleaning
 
 # Create an instance of DatabaseConnector from the YAML file
 db_connector = DatabaseConnector.from_yaml(
-    r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\.gitignore\db_creds.yml")
+    r"C:/Users/nacho/New folder/AiCore/multinational-retail-data-centralisation/.gitignore/db_creds.yml")
 
 # Create an instance of DataExtractor with the db_connector argument
 data_extractor = DataExtractor(db_connector)
