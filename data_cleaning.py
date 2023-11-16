@@ -49,4 +49,6 @@ class DataCleaning:
         return clean_products_data
 
     def clean_orders_data(df):
-        df['Name'] = df['first_name'].astype(str) + df['last_name ']
+        columns_to_remove = ['first_name', 'last_name', '1']
+        cleaned_orders_df = df.drop(columns=columns_to_remove, errors='ignore')
+        return cleaned_orders_df
