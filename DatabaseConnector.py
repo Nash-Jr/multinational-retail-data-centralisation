@@ -5,7 +5,6 @@ import tabula
 import argparse
 import pandas as pd
 import data_cleaning
-import data_extraction
 
 
 class DatabaseConnector:
@@ -16,6 +15,12 @@ class DatabaseConnector:
         self.password = password
         self.port = port
         self.db_engine = self.init_db_engine()
+
+    def init_db_engine(self):
+        engine = create_engine(
+            f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+        )
+        return engine
 
     def read_db_creds(self, file_path):
         with open(file_path, 'r') as file:

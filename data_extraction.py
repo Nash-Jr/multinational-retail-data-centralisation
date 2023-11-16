@@ -2,8 +2,7 @@ import pandas as pd
 from sqlalchemy import create_engine, MetaData, Table
 import boto3
 import requests
-import data_cleaning
-import DatabaseConnector
+from DatabaseConnector import DatabaseConnector
 
 
 class DataExtractor:
@@ -14,7 +13,7 @@ class DataExtractor:
         self.metadata.reflect(bind=self.rds_engine)
 
     def init_db_engine(self):
-        db_credentials = DatabaseConnector.read_db_creds(
+        db_credentials = self.db_connector.read_db_creds(
             r"C:/Users/nacho/New folder/AiCore/multinational-retail-data-centralisation/.gitignore/db_creds.yml")
         engine = create_engine(
             f"postgresql://{db_credentials['RDS_USER']}:{db_credentials['RDS_PASSWORD']}@{db_credentials['RDS_HOST']}:{db_credentials['RDS_PORT']}/{db_credentials['RDS_DATABASE']}"
@@ -48,7 +47,7 @@ class DataExtractor:
             print(f"Error extracting data from S3: {e}")
             return pd.DataFrame()
 
-    def list_number_of_stores(self, number_pf_stores_endpoint, headers):
+    def list_number_of_stores(self, number_pf_stores_endpoint):
         api_key = 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'
         headers = {'x-api-key': api_key}
         response = requests.get(number_pf_stores_endpoint, headers=headers)
@@ -64,7 +63,7 @@ class DataExtractor:
             print(f"An error occurred: {e}")
             return None
 
-    def retrieve_stores_data(api_endpoint):
+    def retrieve_stores_data(self, api_endpoint):
         response = requests.get(api_endpoint)
 
         if response.status_code == 200:
@@ -77,9 +76,17 @@ class DataExtractor:
             return None
 
 
-data_extractor = DataExtractor()
+db_credentials = {
+    'host': 'data-handling-project-readonly.cq2e8zno855e.eu-west-1.rds.amazonaws.com',
+    'database': 'postgres',
+    'user': 'aicore_admin',
+    'password': 'AiCore2022',
+    'port': 5432
+}
+db_connector = DatabaseConnector(**db_credentials)
+data_extractor = DataExtractor(db_connector)
 number_of_stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores'
 headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
-result = data_extractor.list_number_of_stores(
-    number_of_stores_endpoint, headers)
+result = data_extractor.retrieve_stores_data(number_of_stores_endpoint)
+
 print(result)

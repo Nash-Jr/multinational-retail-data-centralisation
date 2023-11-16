@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-import DatabaseConnector
-import data_extraction
 
 
 class DataCleaning:
