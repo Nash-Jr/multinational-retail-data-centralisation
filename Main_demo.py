@@ -60,7 +60,7 @@ data_extractor.extract_df = data_extractor.extract_from_s3(
     's3://data-handling-public/products.csv')
 data_extractor.stores_dataframe = data_extractor.retrieve_stores_data(
     'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}')
-data_extractor.final_df = data_extractor.read_rds_table('legacy_users')
+data_extractor.final_df = data_extractor.read_rds_table('orders_table')
 
 # Print the attributes
 print(data_extractor.df)
