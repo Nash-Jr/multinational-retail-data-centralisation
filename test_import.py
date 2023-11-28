@@ -6,7 +6,6 @@ import argparse
 import pandas as pd
 from sqlalchemy import text
 from data_cleaning import DataCleaning as MyDataCleaning
-from sqlalchemy.exc import SQLAlchemyError
 
 
 data_cleaner = MyDataCleaning()
@@ -119,22 +118,10 @@ class DatabaseConnector:
         metadata.reflect(bind=self.db_engine)
 
         for df, table_name in dataframes_and_tables:
-            if table_name not in metadata.tables:
-                print(f"Table '{table_name}' does not exist. Creating...")
-                df.head(0).to_sql(table_name, self.db_engine,
-                                  if_exists='replace', index=False)
-
-            metadata.reflect(bind=self.db_engine)
-            table = metadata.tables[table_name]
-
+            table = Table(table_name, metadata, autoload=True)
             data = df.to_dict(orient='records')
-
-            try:
-                with self.db_engine.connect() as connection:
-                    connection.execute(table.insert(), data)
-                print(f"Data uploaded to '{table_name}' table.")
-            except SQLAlchemyError as e:
-                print(f"Error uploading data to '{table_name}' table: {e}")
+            with self.db_engine.connect() as connection:
+                connection.execute(table.insert(), data)
 
     def some_other_method(self):
         """
@@ -150,6 +137,13 @@ class DatabaseConnector:
             (data_cleaner.Clean_sales_date, 'dim_date_times')
         ]
         self.upload_to_db(dataframes_and_tables)
+        tables = self.list_db_tables()
+        print("Tables in the database:", tables)
+
+        dim_store_details_data = self.fetch_data_from_table(
+            'dim_store_details')
+        print("Data from 'dim_store_details' table:")
+        print(dim_store_details_data)
 
     def fetch_data_from_table(self, table_name):
         """
