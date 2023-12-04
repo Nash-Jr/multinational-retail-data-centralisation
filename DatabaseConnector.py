@@ -107,43 +107,34 @@ class DatabaseConnector:
 
     def upload_to_db(self, data_cleaner):
         """
-        Upload cleaned dataframes to the connected database.
+        Upload cleaned 'dim_users' DataFrame to the connected database.
 
         Parameters:
         - data_cleaner: An instance of the DataCleaning class.
         """
+        table_name = 'dim_users'
+
         metadata = MetaData()
         metadata.reflect(bind=self.db_engine)
 
-        # List of cleaning methods and corresponding table names
-        cleaning_methods = [
-            data_cleaner.clean_user_data,
-            data_cleaner.clean_card_data,
-            data_cleaner.clean_store_data,
-            data_cleaner.convert_product_weights,
-            data_cleaner.clean_products_data,
-            data_cleaner.clean_orders_data,
-            data_cleaner.clean_sales_date
-        ]
+        if table_name not in metadata.tables:
+            print(f"Table '{table_name}' does not exist. Creating...")
+            cleaned_df = data_cleaner.clean_user_data()
+            cleaned_df.head(0).to_sql(
+                table_name, self.db_engine, if_exists='replace', index=False)
 
-        for clean_method, table_name in zip(cleaning_methods, ['dim_users', 'dim_card_details', 'dim_store_details', 'dim_products', 'dim_products', 'orders_table', 'dim_date_times']):
-            if table_name not in metadata.tables:
-                print(f"Table '{table_name}' does not exist. Creating...")
-                cleaned_df = clean_method(data_cleaner)
-                cleaned_df.head(0).to_sql(
-                    table_name, self.db_engine, if_exists='replace', index=False)
+        metadata.reflect(bind=self.db_engine)
+        table = metadata.tables[table_name]
 
-            metadata.reflect(bind=self.db_engine)
-            table = metadata.tables[table_name]
+        cleaned_df = data_cleaner.clean_user_data()
+        data = cleaned_df.to_dict(orient='records')
 
-            data = clean_method(data_cleaner).to_dict(orient='records')
-
-            try:
-                with self.db_engine.connect() as connection:
-                    connection.execute(table.insert(), data)
-                print(f"Data uploaded to '{table_name}' table.")
-            except SQLAlchemyError as e:
-                print(f"Error uploading data to '{table_name}' table: {e}")
+        try:
+            with self.db_engine.connect() as connection:
+                connection.execute(table.insert(), data)
+            print(f"Data uploaded to '{table_name}' table.")
+        except SQLAlchemyError as e:
+            print(f"Error uploading data to '{table_name}' table: {e}")
 
     def some_other_method(self, data_cleaner):
         """
