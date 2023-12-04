@@ -1,8 +1,8 @@
-
 from DatabaseConnector import DatabaseConnector
 from data_extraction import DataExtractor
 import requests
 import argparse
+from data_cleaning import DataCleaning
 
 
 parser = argparse.ArgumentParser(
@@ -23,6 +23,8 @@ if not result_df.empty:
     print(result_df)
 
 data_extractor = DataExtractor(db_connector)
+data_cleaner = DataCleaning()
+
 
 number_of_stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores'
 headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
@@ -42,6 +44,21 @@ except Exception as e:
     print(f"An error occurred: {e}")
 
 tables = data_extractor.list_db_tables()
+db_connector = data_extractor.db_connector
+table_names = db_connector.list_db_tables()
+
+if table_names:
+    table_name_to_process = list(table_names)[0]
+    # Call the read_rds_table method to get the dataframe
+    df_from_db = data_extractor.read_rds_table(table_name_to_process)
+
+    # Clean user data
+    cleaned_user_data = data_cleaner.clean_user_data(df_from_db)
+
+    # Now you have the cleaned user data
+    print(cleaned_user_data)
+else:
+    print("No tables found in the database.")
 
 # Print the table names
 print("Available tables:")
@@ -58,9 +75,20 @@ if sales_date_df is not None:
 data_extractor.df = result_df
 data_extractor.extract_df = data_extractor.extract_from_s3(
     's3://data-handling-public/products.csv')
-data_extractor.stores_dataframe = data_extractor.retrieve_stores_data(
-    'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}')
-data_extractor.final_df = data_extractor.read_rds_table('orders_table')
+number_of_stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores'
+number_of_stores = data_extractor.list_number_of_stores(
+    number_of_stores_endpoint)
+
+# Step 2: If the number is successfully retrieved, call retrieve_stores_data
+if number_of_stores is not None:
+    data_extractor.stores_dataframe = data_extractor.retrieve_stores_data(
+        'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}',
+        headers,
+        number_of_stores
+    )
+else:
+    print("Failed to retrieve the number of stores.")
+
 
 # Print the attributes
 print(data_extractor.df)

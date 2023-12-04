@@ -27,15 +27,22 @@ class DataCleaning:
         Returns:
         - cleaned_data_df: Cleaned Pandas DataFrame.
         """
-        cleaned_data_df = df.dropna()
-        cleaned_data_df['date_of_birth'] = pd.to_datetime(
-            cleaned_data_df['date_of_birth'], errors='coerce')
-        cleaned_data_df['join_date'] = pd.to_datetime(
-            cleaned_data_df['join_date'], errors='coerce')
-        cleaned_data_df['phone_number'] = cleaned_data_df['phone_number'].apply(
-            lambda x: re.sub(r'\D', '', str(x)) if pd.notnull(x) else x)
-        cleaned_data_df['country'] = cleaned_data_df['country'].str.strip(
-        ).str.upper()
+        cleaned_data_df = df.copy()
+        for col in cleaned_data_df.columns:
+            if pd.api.types.is_numeric_dtype(cleaned_data_df[col]):
+                # Handle numeric columns (e.g., phone numbers)
+                cleaned_data_df[col] = cleaned_data_df[col].apply(
+                    lambda x: re.sub(r'\D', '', str(x)) if pd.notnull(x) else x
+                )
+            elif pd.api.types.is_datetime64_any_dtype(cleaned_data_df[col]):
+                # Handle datetime columns
+                cleaned_data_df[col] = pd.to_datetime(
+                    cleaned_data_df[col], errors='coerce')
+            elif pd.api.types.is_string_dtype(cleaned_data_df[col]):
+                # Handle string columns (e.g., country names)
+                cleaned_data_df[col] = cleaned_data_df[col].str.strip(
+                ).str.upper()
+
         return cleaned_data_df
 
     def clean_card_data(self, final_df):
@@ -155,3 +162,52 @@ class DataCleaning:
         Clean_sales_date['is_valid_uuid'] = Clean_sales_date['date_uuid'].apply(
             lambda x: bool(uuid_pattern.match(str(x))))
         return Clean_sales_date
+
+
+if __name__ == "__main__":
+    from data_extraction import DataExtractor
+
+    data_extractor = DataExtractor()
+
+    # User Data
+    df = data_extractor.get_user_data()
+    cleaned_df = data_extractor.clean_user_data(df)
+    print("Cleaned User Data:")
+    print(cleaned_df)
+    print("User Data printed.")
+
+    # Card Data
+    final_df = data_extractor.get_card_data()
+    cleaned_card_df = data_extractor.clean_card_data(final_df)
+    print("\nCleaned Card Data:")
+    print(cleaned_card_df)
+    print("Card Data printed.")
+
+    # Store Data
+    stores_dataframe = data_extractor.get_store_data()
+    cleaned_stores_df = data_extractor.clean_store_data(stores_dataframe)
+    print("\nCleaned Store Data:")
+    print(cleaned_stores_df)
+    print("Store Data printed.")
+
+    # Product Data
+    extract_df = data_extractor.get_product_data()
+    converted_extract_df = data_extractor.convert_product_weights(extract_df)
+    cleaned_products_df = data_extractor.clean_products_data(extract_df)
+    print("\nCleaned Products Data:")
+    print(cleaned_products_df)
+    print("Products Data printed.")
+
+    # Orders Data
+    orders_df = data_extractor.get_orders_data()
+    cleaned_orders_df = data_extractor.clean_orders_data(orders_df)
+    print("\nCleaned Orders Data:")
+    print(cleaned_orders_df)
+    print("Orders Data printed.")
+
+    # Sales Date Data
+    sales_date_df = data_extractor.get_sales_date_data()
+    cleaned_sales_date_df = data_extractor.clean_sales_date(sales_date_df)
+    print("\nCleaned Sales Date Data:")
+    print(cleaned_sales_date_df)
+    print("Sales Date Data printed.")

@@ -5,11 +5,8 @@ import tabula
 import argparse
 import pandas as pd
 from sqlalchemy import text
-from data_cleaning import DataCleaning as MyDataCleaning
 from sqlalchemy.exc import SQLAlchemyError
-
-
-data_cleaner = MyDataCleaning()
+from data_cleaning import DataCleaning
 
 
 class DatabaseConnector:
@@ -108,26 +105,38 @@ class DatabaseConnector:
             print(f"Failed to download the PDF from the URL:{url}")
             return pd.DataFrame()
 
-    def upload_to_db(self, dataframes_and_tables):
+    def upload_to_db(self, data_cleaner):
         """
-        Upload dataframes to the connected database.
+        Upload cleaned dataframes to the connected database.
 
         Parameters:
-        - dataframes_and_tables: List of tuples containing dataframes and corresponding table names.
+        - data_cleaner: An instance of the DataCleaning class.
         """
         metadata = MetaData()
         metadata.reflect(bind=self.db_engine)
 
-        for df, table_name in dataframes_and_tables:
+        # List of cleaning methods and corresponding table names
+        cleaning_methods = [
+            data_cleaner.clean_user_data,
+            data_cleaner.clean_card_data,
+            data_cleaner.clean_store_data,
+            data_cleaner.convert_product_weights,
+            data_cleaner.clean_products_data,
+            data_cleaner.clean_orders_data,
+            data_cleaner.clean_sales_date
+        ]
+
+        for clean_method, table_name in zip(cleaning_methods, ['dim_users', 'dim_card_details', 'dim_store_details', 'dim_products', 'dim_products', 'orders_table', 'dim_date_times']):
             if table_name not in metadata.tables:
                 print(f"Table '{table_name}' does not exist. Creating...")
-                df.head(0).to_sql(table_name, self.db_engine,
-                                  if_exists='replace', index=False)
+                cleaned_df = clean_method(data_cleaner)
+                cleaned_df.head(0).to_sql(
+                    table_name, self.db_engine, if_exists='replace', index=False)
 
             metadata.reflect(bind=self.db_engine)
             table = metadata.tables[table_name]
 
-            data = df.to_dict(orient='records')
+            data = clean_method(data_cleaner).to_dict(orient='records')
 
             try:
                 with self.db_engine.connect() as connection:
@@ -136,20 +145,14 @@ class DatabaseConnector:
             except SQLAlchemyError as e:
                 print(f"Error uploading data to '{table_name}' table: {e}")
 
-    def some_other_method(self):
+    def some_other_method(self, data_cleaner):
         """
         A method demonstrating how to use the DataCleaning class and upload data to the database.
+
+        Parameters:
+        - data_cleaner: An instance of the DataCleaning class.
         """
-        data_cleaner = MyDataCleaning()
-        dataframes_and_tables = [
-            (data_cleaner.cleaned_data_df, 'dim_users'),
-            (data_cleaner.clean_card_data_df, 'dim_card_details'),
-            (data_cleaner.clean_stores_dataframe, 'dim_store_details'),
-            (data_cleaner.clean_products_data, 'dim_products'),
-            (data_cleaner.cleaned_orders_df, 'orders_table'),
-            (data_cleaner.Clean_sales_date, 'dim_date_times')
-        ]
-        self.upload_to_db(dataframes_and_tables)
+        self.upload_to_db(data_cleaner)
 
     def fetch_data_from_table(self, table_name):
         """

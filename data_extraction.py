@@ -2,7 +2,6 @@ import pandas as pd
 from sqlalchemy import create_engine, MetaData, Table
 import boto3
 import requests
-from DatabaseConnector import DatabaseConnector
 
 
 class DataExtractor:
@@ -50,7 +49,9 @@ class DataExtractor:
         Returns:
         - table_names: List of table names.
         """
-        table_names = self.metadata.tables.keys()
+        metadata = MetaData()
+        metadata.reflect(bind=self.rds_engine)
+        table_names = metadata.tables.keys()
         return table_names
 
     def read_rds_table(self, table_name):
@@ -108,7 +109,7 @@ class DataExtractor:
         response = requests.get(number_pf_stores_endpoint, headers=headers)
         try:
             if response.status_code == 200:
-                number_of_stores = response.json()
+                number_of_stores = response.json().get('number_stores')
                 return number_of_stores
             else:
                 print(
@@ -118,25 +119,35 @@ class DataExtractor:
             print(f"An error occurred: {e}")
             return None
 
-    def retrieve_stores_data(self, api_endpoint):
+    def retrieve_stores_data(self, store_endpoint, header, number_of_stores):
         """
         Retrieve stores data from an API endpoint.
 
         Parameters:
-        - api_endpoint: API endpoint for retrieving store information.
+        - number_of_stores_endpoint: API endpoint for retrieving the number of stores.
+        - header: Header information for the API request.
 
         Returns:
         - stores_dataframe: Pandas DataFrame containing store information.
         """
-        response = requests.get(api_endpoint)
-        if response.status_code == 200:
-            stores_data = response.json()
-            stores_list = stores_data.get('stores', [])
-            stores_dataframe = pd.DataFrame(stores_list)
-            return stores_dataframe
+        stores_data = []
+
+        for store_number in range(1, number_of_stores + 1):
+            store_url = store_endpoint.format(store_number=store_number)
+            response = requests.get(store_url, headers=header)
+
+            if response.status_code == 200:
+                store_data = response.json()
+                stores_data.append(store_data)
+            else:
+                print(
+                    f"Failed to retrieve store data for store {store_number}. Status code: {response.status_code}")
+
+        if stores_data:
+            stores_df = pd.DataFrame(stores_data)
+            return stores_df
         else:
-            print(f'ERROR: unable to retrieve data from {api_endpoint}')
-            print(response.content)
+            print("Failed to retrieve store data from the API.")
             return None
 
     def retrieve_sales_date(self, url):
@@ -164,13 +175,27 @@ class DataExtractor:
             return None
 
 
-db_credentials = {
-    'config_file_path': r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\db_creds.yml"
-}
+if __name__ == "__main__":
+    from DatabaseConnector import DatabaseConnector
+    db_credentials = {
+        'config_file_path': r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\db_creds.yml"
+    }
 
-db_connector = DatabaseConnector(**db_credentials)
-data_extractor = DataExtractor(db_connector)
-number_of_stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores'
-headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
-result = data_extractor.retrieve_stores_data(number_of_stores_endpoint)
-print(result)
+    db_connector = DatabaseConnector(**db_credentials)
+    data_extractor = DataExtractor(db_connector)
+
+    # Provide the correct parameters for retrieve_stores_data
+    number_of_stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores'
+    headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
+    number_of_stores = data_extractor.list_number_of_stores(
+        number_of_stores_endpoint)
+
+    if number_of_stores is not None:
+        result = data_extractor.retrieve_stores_data(
+            'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}',
+            headers,
+            number_of_stores
+        )
+        print(result)
+    else:
+        print("Failed to retrieve the number of stores.")
