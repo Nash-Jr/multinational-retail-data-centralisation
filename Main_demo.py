@@ -50,12 +50,12 @@ table_names = db_connector.list_db_tables()
 if table_names:
     table_name_to_process = list(table_names)[0]
     # Call the read_rds_table method to get the dataframe
-    df_from_db = data_extractor.read_rds_table(table_name_to_process)
+    df_from_db = data_extractor.read_rds_table('orders_table')
 
     # Clean user data
     cleaned_user_data = data_cleaner.clean_user_data(df_from_db)
 
-    # Now you have the cleaned user data
+    # Cleaned user data
     print(cleaned_user_data)
 else:
     print("No tables found in the database.")
@@ -71,7 +71,7 @@ sales_date_df = my_instance.retrieve_sales_date(json_url)
 if sales_date_df is not None:
     print(sales_date_df)
 
-# Assuming 'result' is the DataFrame you want to assign
+
 data_extractor.df = result_df
 data_extractor.extract_df = data_extractor.extract_from_s3(
     's3://data-handling-public/products.csv')
