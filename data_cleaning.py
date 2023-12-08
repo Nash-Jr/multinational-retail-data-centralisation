@@ -43,9 +43,10 @@ class DataCleaning:
                 cleaned_data_df[col] = cleaned_data_df[col].str.strip(
                 ).str.upper()
 
+        print(cleaned_data_df)
         return cleaned_data_df
 
-    def clean_card_data(self, final_df):
+    def clean_card_data(self, card_df):
         """
         Clean card data in a DataFrame.
 
@@ -55,7 +56,7 @@ class DataCleaning:
         Returns:
         - clean_card_data_df: Cleaned Pandas DataFrame.
         """
-        clean_card_data_df = final_df.dropna()
+        clean_card_data_df = card_df.dropna()
         clean_card_data_df['date_payment_confirmed'] = pd.to_datetime(
             clean_card_data_df['date_payment_confirmed'], errors='coerce')
         clean_card_data_df['expiry_date'] = pd.to_numeric(
@@ -75,10 +76,14 @@ class DataCleaning:
         - clean_stores_dataframe: Cleaned Pandas DataFrame.
         """
         clean_stores_dataframe = stores_dataframe.dropna()
-        clean_stores_dataframe['date_column'] = pd.to_datetime(
-            clean_stores_dataframe['date_column'], errors='coerce')
-        clean_stores_dataframe['numeric_column'] = pd.to_numeric(
-            clean_stores_dataframe['numeric_column'], errors='coerce')
+        clean_stores_dataframe['opening_date'] = pd.to_datetime(
+            clean_stores_dataframe['opening_date'], errors='coerce')
+        clean_stores_dataframe['longitude'] = pd.to_numeric(
+            clean_stores_dataframe['longitude'], errors='coerce')
+        clean_stores_dataframe['latitude'] = pd.to_numeric(
+            clean_stores_dataframe['latitude'], errors='coerce')
+        clean_stores_dataframe['staff_numbers'] = pd.to_numeric(
+            clean_stores_dataframe['staff_numbers'], errors='coerce')
         return clean_stores_dataframe
 
     def convert_product_weights(self, extract_df):
@@ -114,8 +119,9 @@ class DataCleaning:
         - clean_products_data: Cleaned Pandas DataFrame.
         """
         clean_products_data = extract_df.dropna()
-        clean_products_data['date_added'] = pd.to_datetime(
+        clean_products_data.loc[:, 'date_added'] = pd.to_datetime(
             clean_products_data['date_added'], errors='coerce')
+
         return clean_products_data
 
     def clean_orders_data(self, df):
@@ -129,8 +135,24 @@ class DataCleaning:
         - cleaned_orders_df: Cleaned Pandas DataFrame.
         """
         columns_to_remove = ['first_name', 'last_name', '1']
-        cleaned_orders_df = df.drop(columns=columns_to_remove, errors='ignore')
-        cleaned_orders_df['date_uuid'] = cleaned_orders_df['date_uuid'].astype()
+        cleaned_orders_df = df.drop(
+            columns=columns_to_remove).copy()  # Copy the DataFrame
+
+        for col in cleaned_orders_df.columns:
+            if pd.api.types.is_numeric_dtype(cleaned_orders_df[col]):
+                cleaned_orders_df[col] = cleaned_orders_df[col].apply(
+                    lambda x: re.sub(r'\D', '', str(x)) if pd.notnull(x) else x
+                )
+            elif pd.api.types.is_datetime64_any_dtype(cleaned_orders_df[col]):
+                cleaned_orders_df[col] = pd.to_datetime(
+                    cleaned_orders_df[col], errors='coerce')
+            elif pd.api.types.is_string_dtype(cleaned_orders_df[col]):
+                cleaned_orders_df[col] = cleaned_orders_df[col].str.strip(
+                ).str.upper()
+
+        cleaned_orders_df = cleaned_orders_df.drop(
+            columns=['level_0', 'index']).reset_index(drop=True)  # Drop specified columns and reset index
+
         return cleaned_orders_df
 
     def clean_sales_date(self, sales_date_df):
@@ -145,7 +167,7 @@ class DataCleaning:
         """
         Clean_sales_date = sales_date_df.dropna()
         Clean_sales_date['timestamp'] = pd.to_datetime(
-            Clean_sales_date['timestamp'], errors='coerce')
+            Clean_sales_date['timestamp'], errors='coerce', format='%Y-%m-%d %H:%M:%S')
         Clean_sales_date['month'] = pd.to_numeric(
             Clean_sales_date['month'], errors='coerce')
         Clean_sales_date['year'] = pd.to_numeric(

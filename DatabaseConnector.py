@@ -1,7 +1,6 @@
 import yaml
 from sqlalchemy import create_engine, MetaData, Table
 import requests
-import tabula
 import argparse
 import pandas as pd
 from sqlalchemy import text
@@ -26,7 +25,7 @@ class DatabaseConnector:
 
     """
 
-    def __init__(self, config_file_path=r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\db_creds.yml"):
+    def __init__(self, config_file_path):
         """
         Initialize the DatabaseConnector instance.
 
@@ -82,29 +81,9 @@ class DatabaseConnector:
         table_names = metadata.tables.keys()
         return table_names
 
-    def retrieve_pdf_data(self, url):
-        """
-        Retrieve data from a PDF linked in a URL.
-
-        Parameters:
-        - url: URL of the PDF.
-
-        Returns:
-        - final_df: Pandas DataFrame containing data from the PDF.
-        """
-        response = requests.get(url)
-        if response.status_code == 200:
-            with open("downloaded_file.pdf", 'wb') as f:
-                f.write(response.content)
-
-            df_list = tabula.read_pdf(
-                "downloaded_file.pdf", pages='all', multiple_tables=True)
-
-            final_df = pd.concat(df_list)
-            return final_df
-        else:
-            print(f"Failed to download the PDF from the URL:{url}")
-            return pd.DataFrame()
+    def test_db_upload(self, df, table_name):
+        print(self.db_engine)
+        df.to_sql(table_name, con=self.db_engine, if_exists='replace')
 
     def upload_to_db(self, data_cleaner, table_name):
         """
@@ -297,35 +276,34 @@ class DatabaseConnector:
                 return None
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Retrieve and process data from a PDF linked in a URL.")
-    parser.add_argument("url", type=str, help="URL of the PDF")
-    args = parser.parse_args()
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(
+#         description="Retrieve and process data from a PDF linked in a URL.")
+#     parser.add_argument("url", type=str, help="URL of the PDF")
+#     args = parser.parse_args()
 
-    db_credentials = {
-        'config_file_path': r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\db_creds.yml"
-    }
+#     db_credentials = {
+#         'config_file_path': r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\db_creds.yml"
+#     }
 
-    db_connector = DatabaseConnector(**db_credentials)
-    db_connector.upgrade_schema()
+#     db_connector = DatabaseConnector(**db_credentials)
+#     db_connector.upgrade_schema()
 
-    # Assuming you have an instance of DataCleaning named data_cleaner_instance
-    data_cleaner_instance = DataCleaning()
+#     data_cleaner_instance = DataCleaning()
 
-    result_df = db_connector.retrieve_pdf_data(args.url)
+#     result_df = db_connector.retrieve_pdf_data(args.url)
 
-    if not result_df.empty:
-        print("Original DataFrame:")
-        print(result_df.head())
+#     if not result_df.empty:
+#         print("Original DataFrame:")
+#         print(result_df.head())
 
-        cleaned_data_df = data_cleaner_instance.clean_user_data(result_df)
-        print("Cleaned DataFrame:")
-        print(cleaned_data_df.head())
+#         cleaned_data_df = data_cleaner_instance.clean_user_data(result_df)
+#         print("Cleaned DataFrame:")
+#         print(cleaned_data_df.head())
 
-        # Continue with other cleaning steps...
+#         # Continue with other cleaning steps...
 
-        uploader = DatabaseConnector(db_connector.db_engine)
-        uploader.upload_to_db(cleaned_data_df, 'dim_users')
-    else:
-        print("No data retrieved from the PDF.")
+#         uploader = DatabaseConnector(db_connector.db_engine)
+#         uploader.upload_to_db(cleaned_data_df, 'dim_users')
+#     else:
+#         print("No data retrieved from the PDF.")

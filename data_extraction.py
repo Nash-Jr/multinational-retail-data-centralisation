@@ -2,6 +2,7 @@ import pandas as pd
 from sqlalchemy import create_engine, MetaData, Table
 import boto3
 import requests
+import tabula
 
 
 class DataExtractor:
@@ -72,6 +73,34 @@ class DataExtractor:
             data = result.fetchall()
         df = pd.DataFrame(data, columns=result.keys())
         return df
+
+    def retrieve_pdf_data(self, url):
+        """
+        Retrieve data from a PDF linked in a URL.
+
+        Parameters:
+        - url (str): URL of the PDF.
+
+        Returns:
+        - pd.DataFrame: Pandas DataFrame containing data from the PDF.
+        """
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+
+            with open("downloaded_file.pdf", 'wb') as f:
+                f.write(response.content)
+
+            df_list = tabula.read_pdf(
+                "downloaded_file.pdf", pages='all', multiple_tables=True)
+
+            final_df = pd.concat(df_list, ignore_index=True)
+            return final_df
+
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to download the PDF from the URL: {url}")
+            print(f"Error: {e}")
+            return pd.DataFrame()
 
     def extract_from_s3(self, s3_address):
         """
@@ -189,6 +218,12 @@ if __name__ == "__main__":
     headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
     number_of_stores = data_extractor.list_number_of_stores(
         number_of_stores_endpoint)
+
+    pdf_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf"
+    card_df = data_extractor.retrieve_pdf_data(pdf_url)
+
+    # Display the combined DataFrame
+    print(card_df)
 
     if number_of_stores is not None:
         result = data_extractor.retrieve_stores_data(

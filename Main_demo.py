@@ -15,6 +15,8 @@ db_credentials = {
     'config_file_path': r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\db_creds.yml"
 }
 db_connector = DatabaseConnector(**db_credentials)
+db_local_con = DatabaseConnector(
+    config_file_path=r"C:\Users\nacho\New folder\AiCore\multinational-retail-data-centralisation\cred_local.yml")
 
 
 result_df = db_connector.retrieve_pdf_data(args.url)
@@ -54,9 +56,10 @@ if table_names:
 
     # Clean user data
     cleaned_user_data = data_cleaner.clean_user_data(df_from_db)
+    db_local_con.test_db_upload(cleaned_user_data, 'dim_users')
 
     # Cleaned user data
-    print(cleaned_user_data)
+    print('cleaned_user_data')
 else:
     print("No tables found in the database.")
 
@@ -65,29 +68,29 @@ print("Available tables:")
 for table in tables:
     print(table)
 
-my_instance = DataExtractor(db_connector)
-json_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"
-sales_date_df = my_instance.retrieve_sales_date(json_url)
-if sales_date_df is not None:
-    print(sales_date_df)
+# my_instance = DataExtractor(db_connector)
+# json_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"
+# sales_date_df = my_instance.retrieve_sales_date(json_url)
+# if sales_date_df is not None:
+#     print(sales_date_df)
 
 
-data_extractor.df = result_df
-data_extractor.extract_df = data_extractor.extract_from_s3(
-    's3://data-handling-public/products.csv')
-number_of_stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores'
-number_of_stores = data_extractor.list_number_of_stores(
-    number_of_stores_endpoint)
+# data_extractor.df = result_df
+# data_extractor.extract_df = data_extractor.extract_from_s3(
+#    's3://data-handling-public/products.csv')
+# number_of_stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores'
+# number_of_stores = data_extractor.list_number_of_stores(
+#    number_of_stores_endpoint)
 
 # Step 2: If the number is successfully retrieved, call retrieve_stores_data
-if number_of_stores is not None:
-    data_extractor.stores_dataframe = data_extractor.retrieve_stores_data(
-        'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}',
-        headers,
-        number_of_stores
-    )
-else:
-    print("Failed to retrieve the number of stores.")
+# if number_of_stores is not None:
+#     data_extractor.stores_dataframe = data_extractor.retrieve_stores_data(
+#         'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}',
+#         headers,
+#         number_of_stores
+#     )
+# else:
+#     print("Failed to retrieve the number of stores.")
 
 
 # Print the attributes
