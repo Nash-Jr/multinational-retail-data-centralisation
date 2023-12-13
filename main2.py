@@ -18,7 +18,7 @@ data_extractor = DataExtractor(db_connector)
 # User data
 df_from_db = data_extractor.read_rds_table('legacy_users')
 cleaned_user_data = data_cleaner.clean_user_data(df_from_db)
-db_local_con.test_db_upload(cleaned_user_data, 'dim_users')
+db_local_con.test_db_upload(cleaned_user_data, 'c')
 
 # card_data
 pdf_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf"
@@ -57,3 +57,12 @@ json_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details
 df_from_s3 = data_extractor.retrieve_sales_date(json_url)
 cleaned_date_times = data_cleaner.clean_sales_date(df_from_s3)
 db_local_con.test_db_upload(cleaned_date_times, 'dim_date_times')
+
+# sql data types change
+db_local_con.change_datatype('orders_table')
+db_local_con.change_datatype('dim_users_table')
+db_local_con.change_datatype('dim_store_details')
+db_local_con.change_datatype('products')
+db_local_con.change_datatype('dim_products')
+db_local_con.change_datatype('dim_date_times')
+db_local_con.change_datatype('dim_card_details')

@@ -18,32 +18,47 @@ class DataCleaning:
     """
 
     def clean_user_data(self, df):
-        """
-        Clean user data in a DataFrame.
-
-        Parameters:
-        - df: Pandas DataFrame containing user data.
-
-        Returns:
-        - cleaned_data_df: Cleaned Pandas DataFrame.
-        """
         cleaned_data_df = df.copy()
+
+        # Handle 'date_of_birth' column
+        cleaned_data_df['date_of_birth'] = cleaned_data_df['date_of_birth'].str.upper()
+
+        # Handle valid date values like "JANUARY 1951 27"
+        cleaned_data_df['date_of_birth'] = np.where(
+            cleaned_data_df['date_of_birth'].str.match(
+                r'^[A-Z]+\s\d{4}\s\d+$'),
+            pd.to_datetime(
+                cleaned_data_df['date_of_birth'], format='%B %Y %d', errors='coerce').dt.strftime('%d-%m-%Y'),
+            cleaned_data_df['date_of_birth']
+        )
+
+        # Handle 'NULL' values
+        cleaned_data_df['date_of_birth'] = np.where(
+            cleaned_data_df['date_of_birth'] == 'NULL',
+            np.nan,
+            cleaned_data_df['date_of_birth']
+        )
+
+        # Handle non-date values
+        cleaned_data_df['date_of_birth'] = pd.to_datetime(
+            cleaned_data_df['date_of_birth'], errors='coerce', format='%B %Y %d')
+
         for col in cleaned_data_df.columns:
             if pd.api.types.is_numeric_dtype(cleaned_data_df[col]):
                 # Handle numeric columns (e.g., phone numbers)
-                cleaned_data_df[col] = cleaned_data_df[col].apply(
-                    lambda x: re.sub(r'\D', '', str(x)) if pd.notnull(x) else x
-                )
-            elif pd.api.types.is_datetime64_any_dtype(cleaned_data_df[col]):
-                # Handle datetime columns
-                cleaned_data_df[col] = pd.to_datetime(
-                    cleaned_data_df[col], errors='coerce')
+                cleaned_data_df[col] = cleaned_data_df[col].apply(lambda x: re.sub(
+                    r'\D', '', str(x)) if pd.notnull(x) else x)
             elif pd.api.types.is_string_dtype(cleaned_data_df[col]):
                 # Handle string columns (e.g., country names)
                 cleaned_data_df[col] = cleaned_data_df[col].str.strip(
                 ).str.upper()
 
-        print(cleaned_data_df)
+        # Remove rows with non-date values in 'date_of_birth'
+        cleaned_data_df = cleaned_data_df.dropna(subset=['date_of_birth'])
+
+        # Print unique values in 'date_of_birth' column
+        print(cleaned_data_df['date_of_birth'].unique())
+
         return cleaned_data_df
 
     def clean_card_data(self, card_df):
