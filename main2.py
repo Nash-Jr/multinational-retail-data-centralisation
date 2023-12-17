@@ -18,7 +18,7 @@ data_extractor = DataExtractor(db_connector)
 # User data
 df_from_db = data_extractor.read_rds_table('legacy_users')
 cleaned_user_data = data_cleaner.clean_user_data(df_from_db)
-db_local_con.test_db_upload(cleaned_user_data, 'c')
+db_local_con.test_db_upload(cleaned_user_data, 'dim_users_table')
 
 # card_data
 pdf_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf"

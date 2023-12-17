@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
+from dateutil.parser import parse
 
 
 class DataCleaning:
@@ -17,20 +18,36 @@ class DataCleaning:
     - clean_sales_date: Clean sales date data in a DataFrame.
     """
 
+    def datetime_conversion(self, value):
+        """
+        Convert date string to a standardized format.
+
+        Parameters:
+        - value: Date string.
+
+        Returns:
+        - str: Standardized date string (DD-MM-YYYY) or 'NULL' for invalid dates.
+        """
+        # List of possible date formats
+        date_formats = ['%Y-%m-%d', '%Y %B %d', '%Y/%m/%d', '%B %Y %d']
+
+        for format in date_formats:
+            try:
+                # Attempt to parse the date using different formats
+                parsed_date = parse(
+                    value, fuzzy_with_tokens=True, dayfirst=True, yearfirst=False)
+                return parsed_date[0].strftime('%d-%m-%Y')
+            except (ValueError, StopIteration):
+                pass
+
+        return 'NULL'
+
     def clean_user_data(self, df):
         cleaned_data_df = df.copy()
 
         # Handle 'date_of_birth' column
-        cleaned_data_df['date_of_birth'] = cleaned_data_df['date_of_birth'].str.upper()
-
-        # Handle valid date values like "JANUARY 1951 27"
-        cleaned_data_df['date_of_birth'] = np.where(
-            cleaned_data_df['date_of_birth'].str.match(
-                r'^[A-Z]+\s\d{4}\s\d+$'),
-            pd.to_datetime(
-                cleaned_data_df['date_of_birth'], format='%B %Y %d', errors='coerce').dt.strftime('%d-%m-%Y'),
-            cleaned_data_df['date_of_birth']
-        )
+        cleaned_data_df['date_of_birth'] = cleaned_data_df['date_of_birth'].apply(
+            self.datetime_conversion)
 
         # Handle 'NULL' values
         cleaned_data_df['date_of_birth'] = np.where(
@@ -39,9 +56,8 @@ class DataCleaning:
             cleaned_data_df['date_of_birth']
         )
 
-        # Handle non-date values
-        cleaned_data_df['date_of_birth'] = pd.to_datetime(
-            cleaned_data_df['date_of_birth'], errors='coerce', format='%B %Y %d')
+        # Remove rows with non-date values in 'date_of_birth'
+        cleaned_data_df = cleaned_data_df.dropna(subset=['date_of_birth'])
 
         for col in cleaned_data_df.columns:
             if pd.api.types.is_numeric_dtype(cleaned_data_df[col]):
@@ -52,9 +68,6 @@ class DataCleaning:
                 # Handle string columns (e.g., country names)
                 cleaned_data_df[col] = cleaned_data_df[col].str.strip(
                 ).str.upper()
-
-        # Remove rows with non-date values in 'date_of_birth'
-        cleaned_data_df = cleaned_data_df.dropna(subset=['date_of_birth'])
 
         # Print unique values in 'date_of_birth' column
         print(cleaned_data_df['date_of_birth'].unique())
