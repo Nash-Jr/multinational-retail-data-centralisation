@@ -189,62 +189,52 @@ class DatabaseConnector:
                     "ALTER TABLE orders_table ALTER COLUMN product_code TYPE VARCHAR(10)",
                     "UPDATE orders_table SET product_quantity = NULL WHERE LENGTH(product_quantity) > 5",
                     "ALTER TABLE orders_table ALTER COLUMN product_quantity TYPE SMALLINT USING product_quantity::SMALLINT",
-                    "ALTER TABLE orders_table ADD PRIMARY KEY (product_quantity)",
-                    "ALTER TABLE orders_table ADD CONSTRAINT fk_user_uuid FOREIGN KEY (user_uuid) REFERENCES dim_users_table(user_uuid)",
-                    "ALTER TABLE orders_table ADD CONSTRAINT fk_store_code FOREIGN KEY (store_code) REFERENCES dim_store_details(store_code)",
-                    "ALTER TABLE orders_table ADD CONSTRAINT fk_product_code FOREIGN KEY (product_code) REFERENCES dim_products(product_code)",
-                    "ALTER TABLE orders_table ADD CONSTRAINT fk_date_uuid FOREIGN KEY (date_uuid) REFERENCES dim_date_times(date_uuid)",
-                    "ALTER TABLE orders_table ADD CONSTRAINT fk_card_number FOREIGN KEY (card_number) REFERENCES dim_card_details(card_number)"
                 ])
             elif database_identifier == 'dim_users_table':
                 sql_statements.extend([
                     "DELETE FROM dim_users_table WHERE NOT (date_of_birth ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')",
                     "UPDATE dim_users_table SET first_name = LEFT(first_name, 255) WHERE LENGTH(first_name) > 255",
                     "UPDATE dim_users_table SET last_name = LEFT(last_name, 255) WHERE LENGTH(last_name) > 255",
-                    "UPDATE dim_users_table SET country_code = LEFT(country_code, 3) WHERE LENGTH(country_code) > 3",
+                    "UPDATE dim_users_table SET country_code = LEFT(country_code, 2) WHERE LENGTH(country_code) > 2",
                     "UPDATE dim_users_table SET date_of_birth = NULL WHERE date_of_birth = 'KBTI';",
                     "ALTER TABLE dim_users_table ALTER COLUMN first_name TYPE VARCHAR(255) USING first_name::VARCHAR(255)",
                     "ALTER TABLE dim_users_table ALTER COLUMN last_name TYPE VARCHAR(255) USING last_name::VARCHAR(255)",
                     "ALTER TABLE dim_users_table ALTER COLUMN date_of_birth TYPE DATE USING to_date(date_of_birth, 'YYYY-MM-DD')",
-                    "ALTER TABLE dim_users_table ALTER COLUMN country_code TYPE VARCHAR(3) USING country_code::VARCHAR(3)",
+                    "ALTER TABLE dim_users_table ALTER COLUMN country_code TYPE VARCHAR(3) USING country_code::VARCHAR(2)",
                     "ALTER TABLE dim_users_table ALTER COLUMN user_uuid TYPE UUID USING user_uuid::UUID",
                     "ALTER TABLE dim_users_table ALTER COLUMN join_date TYPE DATE USING to_date(join_date, 'YYYY-MM-DD')",
-                    "ALTER TABLE dim_users_table ALTER COLUMN date_of_birth TYPE DATE USING date_of_birth::date",
-                    "ALTER TABLE dim_users_table ADD PRIMARY KEY (user_uuid)"
+                    "ALTER TABLE dim_users_table ALTER COLUMN date_of_birth TYPE DATE USING date_of_birth::date"
                 ])
 
             elif database_identifier == 'dim_store_details':
                 sql_statements.extend([
-                    "UPDATE dim_store_details SET locality = LEFT(locality, 255) WHERE LENGTH(locality) > 255",
-                    "UPDATE dim_store_details SET store_code = LEFT(store_code, 255) WHERE LENGTH(store_code) > 255",
-                    "UPDATE dim_store_details SET store_type = LEFT(store_type, 255) WHERE LENGTH(store_type) > 255",
-                    "UPDATE dim_store_details SET country_code = LEFT(country_code, 3) WHERE LENGTH(country_code) > 3",
-                    "UPDATE dim_store_details SET continent = LEFT(continent, 255) WHERE LENGTH(continent) > 255",
-                    "ALTER TABLE dim_store_details ALTER COLUMN longitude SET DATA TYPE FLOAT",
+                    "DELETE FROM dim_store_details WHERE LENGTH(locality) > 255",
+                    "DELETE FROM dim_store_details WHERE LENGTH(store_code) > 11",
+                    "UPDATE dim_store_details SET store_type = COALESCE(LEFT(store_type, 255), '') WHERE LENGTH(store_type) > 255 OR store_type IS NULL",
+                    "DELETE FROM dim_store_details WHERE LENGTH(country_code) > 2",
+                    "DELETE FROM dim_store_details WHERE LENGTH(continent) > 255",
+                    "ALTER TABLE dim_store_details ALTER COLUMN longitude SET DATA TYPE FLOAT USING NULLIF(longitude, '')::FLOAT",
                     "ALTER TABLE dim_store_details ALTER COLUMN locality SET DATA TYPE VARCHAR(255) USING locality::VARCHAR(255)",
-                    "ALTER TABLE dim_store_details ALTER COLUMN store_code SET DATA TYPE VARCHAR(255) USING store_code::VARCHAR(255)",
+                    "ALTER TABLE dim_store_details ALTER COLUMN store_code SET DATA TYPE VARCHAR(11) USING store_code::VARCHAR(11)",
                     "ALTER TABLE dim_store_details ALTER COLUMN staff_numbers SET DATA TYPE SMALLINT",
                     "ALTER TABLE dim_store_details ALTER COLUMN opening_date TYPE DATE",
                     "ALTER TABLE dim_store_details ALTER COLUMN store_type TYPE VARCHAR(255)",
-                    "ALTER TABLE dim_store_details ALTER COLUMN latitude SET DATA TYPE FLOAT",
-                    "ALTER TABLE dim_store_details ALTER COLUMN country_code SET DATA TYPE VARCHAR(3) USING country_code::VARCHAR(3)",
-                    "ALTER TABLE dim_store_details ALTER COLUMN continent SET DATA TYPE VARCHAR(255) USING continent::VARCHAR(255)",
-                    "ALTER TABLE dim_store_details ADD PRIMARY KEY (store_code)"
+                    "ALTER TABLE dim_store_details ALTER COLUMN latitude SET DATA TYPE FLOAT USING NULLIF(longitude, '')::FLOAT",
+                    "ALTER TABLE dim_store_details ALTER COLUMN country_code SET DATA TYPE VARCHAR(2) USING country_code::VARCHAR(2)",
+                    "ALTER TABLE dim_store_details ALTER COLUMN continent SET DATA TYPE VARCHAR(255) USING continent::VARCHAR(255)"
 
                 ])
 
             elif database_identifier == 'dim_products':
                 sql_statements.extend([
-                    "ALTER TABLE dim_products ALTER COLUMN product_price TYPE FLOAT USING REPLACE(product_price, '£', '')::FLOAT",
-                    "UPDATE dim_products SET weight_value = weight_value * 1000",
-                    "ALTER TABLE dim_products ALTER COLUMN weight_value TYPE FLOAT",
+                    "ALTER TABLE dim_products ALTER COLUMN product_price TYPE FLOAT USING NULLIF(replace(replace(product_price::text, '£', ''), ',', ''), '')::FLOAT",
+                    "ALTER TABLE dim_products ALTER COLUMN weight TYPE FLOAT USING weight::FLOAT",
                     "ALTER TABLE dim_products ALTER COLUMN \"EAN\" TYPE VARCHAR(13)",
                     "ALTER TABLE dim_products ALTER COLUMN product_code TYPE VARCHAR(11)",
                     "ALTER TABLE dim_products ALTER COLUMN date_added TYPE DATE USING date_added::DATE",
                     "ALTER TABLE dim_products ALTER COLUMN uuid TYPE UUID USING uuid::UUID",
                     "ALTER TABLE dim_products RENAME COLUMN removed TO still_available",
-                    "ALTER TABLE dim_products ALTER COLUMN still_available TYPE BOOLEAN USING CASE WHEN still_available = 'Still_avaliable' THEN TRUE ELSE FALSE END",
-                    "ALTER TABLE dim_products ADD PRIMARY KEY (product_code)"
+                    "ALTER TABLE dim_products ALTER COLUMN still_available TYPE BOOLEAN USING CASE WHEN still_available = 'Still_avaliable' THEN TRUE ELSE FALSE END"
                 ])
 
             elif database_identifier == 'dim_date_times':
@@ -252,10 +242,9 @@ class DatabaseConnector:
                     "ALTER TABLE dim_date_times ALTER COLUMN month TYPE VARCHAR(12)",
                     "ALTER TABLE dim_date_times ALTER COLUMN year TYPE VARCHAR(30)",
                     "ALTER TABLE dim_date_times ALTER COLUMN day TYPE VARCHAR(31)",
-                    "ALTER TABLE dim_date_times ALTER COLUMN time_period TYPE VARCHAR(5)",
+                    "DELETE FROM dim_date_times WHERE LENGTH(time_period) > 5",
                     "DELETE FROM dim_date_times WHERE NOT (LENGTH(date_uuid) = 36 AND SUBSTRING(date_uuid FROM 9 FOR 1) = '-' AND SUBSTRING(date_uuid FROM 14 FOR 1) = '-' AND SUBSTRING(date_uuid FROM 19 FOR 1) = '-' AND SUBSTRING(date_uuid FROM 24 FOR 1) = '-')",
                     "ALTER TABLE dim_date_times ALTER COLUMN date_uuid TYPE UUID USING NULLIF(date_uuid, '')::UUID",
-                    "ALTER TABLE dim_date_times ADD PRIMARY KEY (date_uuid)"
                 ])
 
             elif database_identifier == 'dim_card_details':
@@ -265,8 +254,21 @@ class DatabaseConnector:
                     "UPDATE dim_card_details SET date_payment_confirmed = CASE WHEN date_payment_confirmed::text ~ '^\s*$' THEN NULL ELSE date_payment_confirmed::DATE END",
                     "ALTER TABLE dim_card_details ALTER COLUMN card_number TYPE VARCHAR(16)",
                     "ALTER TABLE dim_card_details ALTER COLUMN expiry_date TYPE VARCHAR(5)",
-                    "ALTER TABLE dim_card_details ALTER COLUMN date_payment_confirmed TYPE DATE",
-                    "ALTER TABLE dim_card_details ADD PRIMARY KEY (date_uuid)"
+                    "ALTER TABLE dim_card_details ALTER COLUMN date_payment_confirmed TYPE DATE"
+                ])
+
+            elif database_identifier == 'orders_table':
+                sql_statements.extend([
+                    "ALTER TABLE dim_users_table ADD PRIMARY KEY (user_uuid)",
+                    "ALTER TABLE dim_store_details ADD PRIMARY KEY (store_code)",
+                    "ALTER TABLE dim_products ADD PRIMARY KEY (product_code)",
+                    "ALTER TABLE dim_date_times ADD PRIMARY KEY (date_uuid)",
+                    "ALTER TABLE dim_card_details ADD PRIMARY KEY (card_number)",
+                    "ALTER TABLE orders_table ADD CONSTRAINT fk_user_uuid FOREIGN KEY (user_uuid) REFERENCES dim_users_table(user_uuid)",
+                    "ALTER TABLE orders_table ADD CONSTRAINT fk_store_code FOREIGN KEY (store_code) REFERENCES dim_store_details(store_code)",
+                    "ALTER TABLE orders_table ADD CONSTRAINT fk_product_code FOREIGN KEY (product_code) REFERENCES dim_products(product_code)",
+                    "ALTER TABLE orders_table ADD CONSTRAINT fk_date_uuid FOREIGN KEY (date_uuid) REFERENCES dim_date_times(date_uuid)",
+                    "ALTER TABLE orders_table ADD CONSTRAINT fk_card_number FOREIGN KEY (card_number) REFERENCES dim_card_details(card_number)"
                 ])
 
             for sql_statement in sql_statements:

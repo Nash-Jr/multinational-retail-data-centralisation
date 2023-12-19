@@ -70,7 +70,7 @@ class DataCleaning:
                 ).str.upper()
 
         # Print unique values in 'date_of_birth' column
-        print(cleaned_data_df['date_of_birth'].unique())
+        print(cleaned_data_df)
 
         return cleaned_data_df
 
@@ -87,31 +87,25 @@ class DataCleaning:
         clean_card_data_df = card_df.dropna()
         clean_card_data_df['date_payment_confirmed'] = pd.to_datetime(
             clean_card_data_df['date_payment_confirmed'], errors='coerce')
-        clean_card_data_df['expiry_date'] = pd.to_numeric(
-            clean_card_data_df['expiry_date'], errors='coerce')
-        clean_card_data_df['card_number'] = pd.to_numeric(
-            clean_card_data_df['card_number'], errors='coerce')
+        clean_card_data_df['expiry_date'] = pd.to_datetime(
+            clean_card_data_df['expiry_date'], errors='coerce', format='%m/%y')
+        clean_card_data_df['expiry_date'] = clean_card_data_df['expiry_date'].dt.strftime(
+            '%m/%y')
+
         return clean_card_data_df
 
-    def clean_store_data(self, stores_dataframe):
+    def clean_store_data(self, stores_data):
         """
         Clean store data in a DataFrame.
 
         Parameters:
-        - stores_dataframe: Pandas DataFrame containing store data.
+        - stores_df: Pandas DataFrame containing store data.
 
         Returns:
         - clean_stores_dataframe: Cleaned Pandas DataFrame.
         """
-        clean_stores_dataframe = stores_dataframe.dropna()
-        clean_stores_dataframe['opening_date'] = pd.to_datetime(
-            clean_stores_dataframe['opening_date'], errors='coerce')
-        clean_stores_dataframe['longitude'] = pd.to_numeric(
-            clean_stores_dataframe['longitude'], errors='coerce')
-        clean_stores_dataframe['latitude'] = pd.to_numeric(
-            clean_stores_dataframe['latitude'], errors='coerce')
-        clean_stores_dataframe['staff_numbers'] = pd.to_numeric(
-            clean_stores_dataframe['staff_numbers'], errors='coerce')
+        clean_stores_dataframe = stores_data.dropna()
+        print(clean_stores_dataframe)
         return clean_stores_dataframe
 
     def convert_product_weights(self, extract_df):
@@ -124,16 +118,13 @@ class DataCleaning:
         Returns:
         - extract_df: Pandas DataFrame with converted product weights.
         """
-        extract_df[['weight_value', 'weight_unit']
-                   ] = extract_df['weight'].str.split(n=1, expand=True)
+        extract_df['weight'] = extract_df['weight'].str.replace(
+            'g', 'kg').str.replace('ml', 'g')
         extract_df['weight_value'] = pd.to_numeric(
-            extract_df['weight_value'], errors='coerce')
-        extract_df['weight_value'] = np.where(extract_df['weight_unit'].str.contains(
+            extract_df['weight'], errors='coerce')
+        extract_df['weight_value'] = np.where(extract_df['weight'].str.contains(
             'g'), extract_df['weight_value'] / 1000, extract_df['weight_value'])
-        extract_df['weight_value'] = np.where(extract_df['weight_unit'].str.contains(
-            'ml'), extract_df['weight_value'] / 1000, extract_df['weight_value'])
-        extract_df.drop(columns=['weight_unit'], inplace=True)
-        extract_df['weight_value'] = extract_df['weight_value'].astype(float)
+        extract_df.drop(columns=['weight_value'], inplace=True)
         return extract_df
 
     def clean_products_data(self, extract_df):
@@ -147,8 +138,13 @@ class DataCleaning:
         - clean_products_data: Cleaned Pandas DataFrame.
         """
         clean_products_data = extract_df.dropna()
+        clean_products_data = clean_products_data.loc[clean_products_data['product_price'].notna(
+        )]
         clean_products_data.loc[:, 'date_added'] = pd.to_datetime(
             clean_products_data['date_added'], errors='coerce')
+        clean_products_data.loc[:, 'product_price'] = pd.to_numeric(
+            clean_products_data['product_price'], errors='coerce')
+        clean_products_data.dropna(subset=['product_price'], inplace=True)
 
         return clean_products_data
 
@@ -194,19 +190,12 @@ class DataCleaning:
         - Clean_sales_date: Cleaned Pandas DataFrame.
         """
         Clean_sales_date = sales_date_df.dropna()
-        Clean_sales_date['timestamp'] = pd.to_datetime(
-            Clean_sales_date['timestamp'], errors='coerce', format='%Y-%m-%d %H:%M:%S')
         Clean_sales_date['month'] = pd.to_numeric(
             Clean_sales_date['month'], errors='coerce')
         Clean_sales_date['year'] = pd.to_numeric(
             Clean_sales_date['year'], errors='coerce')
         Clean_sales_date['day'] = pd.to_numeric(
             Clean_sales_date['day'], errors='coerce')
-        Clean_sales_date['time_period'] = Clean_sales_date['time_period'].astype(
-            'category')
-        time_period_mapping = {'morning': 'AM', 'afternoon': 'PM'}
-        Clean_sales_date['time_period'] = Clean_sales_date['time_period'].map(
-            time_period_mapping)
         uuid_pattern = re.compile(
             r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
         Clean_sales_date['is_valid_uuid'] = Clean_sales_date['date_uuid'].apply(
@@ -214,50 +203,50 @@ class DataCleaning:
         return Clean_sales_date
 
 
-if __name__ == "__main__":
-    from data_extraction import DataExtractor
-
-    data_extractor = DataExtractor()
-
-    # User Data
-    df = data_extractor.get_user_data()
-    cleaned_df = data_extractor.clean_user_data(df)
-    print("Cleaned User Data:")
-    print(cleaned_df)
-    print("User Data printed.")
+# if __name__ == "__main__":
+#    from data_extraction import DataExtractor
+#
+#    data_extractor = DataExtractor(db_connector)
+#
+#    # User Data
+#    df = data_extractor.get_user_data()
+#    cleaned_df = data_extractor.clean_user_data(df)
+#    print("Cleaned User Data:")
+#    print(cleaned_df)
+#    print("User Data printed.")
 
     # Card Data
-    final_df = data_extractor.get_card_data()
-    cleaned_card_df = data_extractor.clean_card_data(final_df)
-    print("\nCleaned Card Data:")
-    print(cleaned_card_df)
-    print("Card Data printed.")
+#    final_df = data_extractor.get_card_data()
+#    cleaned_card_df = data_extractor.clean_card_data(final_df)
+#    print("\nCleaned Card Data:")
+#    print(cleaned_card_df)
+#    print("Card Data printed.")
 
-    # Store Data
-    stores_dataframe = data_extractor.get_store_data()
-    cleaned_stores_df = data_extractor.clean_store_data(stores_dataframe)
-    print("\nCleaned Store Data:")
-    print(cleaned_stores_df)
-    print("Store Data printed.")
+    # # Store Data
+    # stores_dataframe = data_extractor.get_store_data()
+    # cleaned_stores_df = data_extractor.clean_store_data(stores_dataframe)
+    # print("\nCleaned Store Data:")
+    # print(cleaned_stores_df)
+    # print("Store Data printed.")
 
-    # Product Data
-    extract_df = data_extractor.get_product_data()
-    converted_extract_df = data_extractor.convert_product_weights(extract_df)
-    cleaned_products_df = data_extractor.clean_products_data(extract_df)
-    print("\nCleaned Products Data:")
-    print(cleaned_products_df)
-    print("Products Data printed.")
+    # # Product Data
+    # extract_df = data_extractor.get_product_data()
+    # converted_extract_df = data_extractor.convert_product_weights(extract_df)
+    # cleaned_products_df = data_extractor.clean_products_data(extract_df)
+    # print("\nCleaned Products Data:")
+    # print(cleaned_products_df)
+    # print("Products Data printed.")
 
-    # Orders Data
-    orders_df = data_extractor.get_orders_data()
-    cleaned_orders_df = data_extractor.clean_orders_data(orders_df)
-    print("\nCleaned Orders Data:")
-    print(cleaned_orders_df)
-    print("Orders Data printed.")
+    # # Orders Data
+    # orders_df = data_extractor.get_orders_data()
+    # cleaned_orders_df = data_extractor.clean_orders_data(orders_df)
+    # print("\nCleaned Orders Data:")
+    # print(cleaned_orders_df)
+    # print("Orders Data printed.")
 
-    # Sales Date Data
-    sales_date_df = data_extractor.get_sales_date_data()
-    cleaned_sales_date_df = data_extractor.clean_sales_date(sales_date_df)
-    print("\nCleaned Sales Date Data:")
-    print(cleaned_sales_date_df)
-    print("Sales Date Data printed.")
+    # # Sales Date Data
+    # sales_date_df = data_extractor.get_sales_date_data()
+    # cleaned_sales_date_df = data_extractor.clean_sales_date(sales_date_df)
+    # print("\nCleaned Sales Date Data:")
+    # print(cleaned_sales_date_df)
+    # print("Sales Date Data printed.")

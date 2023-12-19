@@ -32,14 +32,16 @@ headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
 number_of_stores = data_extractor.list_number_of_stores(
     number_of_stores_endpoint)
 if number_of_stores is not None:
-    data_extractor.stores_dataframe = data_extractor.retrieve_stores_data(
+    data_extractor_data = data_extractor.retrieve_stores_data(
         'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}',
         headers,
         number_of_stores
     )
 else:
     print("Failed to retrieve the number of stores.")
-
+cleaned_store_data = data_cleaner.clean_store_data(
+    data_extractor_data)
+db_local_con.test_db_upload(cleaned_store_data, 'dim_store_details')
 # products data
 s3_adress = 's3://data-handling-public/products.csv'
 df_from_extractor = data_extractor.extract_from_s3(s3_adress)
@@ -62,7 +64,6 @@ db_local_con.test_db_upload(cleaned_date_times, 'dim_date_times')
 db_local_con.change_datatype('orders_table')
 db_local_con.change_datatype('dim_users_table')
 db_local_con.change_datatype('dim_store_details')
-db_local_con.change_datatype('products')
 db_local_con.change_datatype('dim_products')
 db_local_con.change_datatype('dim_date_times')
 db_local_con.change_datatype('dim_card_details')
