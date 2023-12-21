@@ -118,6 +118,7 @@ class DataExtractor:
         try:
             obj = s3.get_object(Bucket=bucket_name, Key=file_key)
             extract_df = pd.read_csv(obj['Body'])
+            print(extract_df)
             return extract_df
         except Exception as e:
             print(f"Error extracting data from S3: {e}")
@@ -174,6 +175,7 @@ class DataExtractor:
 
         if stores_data:
             stores_df = pd.DataFrame(stores_data)
+            print(stores_df)
             return stores_df
         else:
             print("Failed to retrieve store data from the API.")
@@ -194,6 +196,7 @@ class DataExtractor:
             if response.status_code == 200:
                 data = response.json()
                 sales_date_df = pd.DataFrame(data)
+                print(sales_date_df)
                 return sales_date_df
             else:
                 print(

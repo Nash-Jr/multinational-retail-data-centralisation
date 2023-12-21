@@ -45,9 +45,8 @@ db_local_con.test_db_upload(cleaned_store_data, 'dim_store_details')
 # products data
 s3_adress = 's3://data-handling-public/products.csv'
 df_from_extractor = data_extractor.extract_from_s3(s3_adress)
-convert_products_data = data_cleaner.convert_product_weights(df_from_extractor)
-clean_products_data = data_cleaner.clean_products_data(convert_products_data)
-db_local_con.test_db_upload(clean_products_data, 'dim_products')
+cleaned_products_data = data_cleaner.clean_products_data(df_from_extractor)
+db_local_con.test_db_upload(cleaned_products_data, 'dim_products')
 
 # orders data
 df_from_db2 = data_extractor.read_rds_table('orders_table')

@@ -216,20 +216,26 @@ class DatabaseConnector:
                     "ALTER TABLE dim_store_details ALTER COLUMN longitude SET DATA TYPE FLOAT USING NULLIF(longitude, '')::FLOAT",
                     "ALTER TABLE dim_store_details ALTER COLUMN locality SET DATA TYPE VARCHAR(255) USING locality::VARCHAR(255)",
                     "ALTER TABLE dim_store_details ALTER COLUMN store_code SET DATA TYPE VARCHAR(11) USING store_code::VARCHAR(11)",
-                    "ALTER TABLE dim_store_details ALTER COLUMN staff_numbers SET DATA TYPE SMALLINT",
-                    "ALTER TABLE dim_store_details ALTER COLUMN opening_date TYPE DATE",
+                    "UPDATE dim_store_details SET staff_numbers = regexp_replace(staff_numbers, '[^0-9]', '', 'g')",
+                    "ALTER TABLE dim_store_details ALTER COLUMN staff_numbers SET DATA TYPE SMALLINT USING NULLIF(staff_numbers, '')::SMALLINT",
+                    "ALTER TABLE dim_store_details ALTER COLUMN opening_date TYPE DATE USING opening_date::DATE",
                     "ALTER TABLE dim_store_details ALTER COLUMN store_type TYPE VARCHAR(255)",
-                    "ALTER TABLE dim_store_details ALTER COLUMN latitude SET DATA TYPE FLOAT USING NULLIF(longitude, '')::FLOAT",
+                    "ALTER TABLE dim_store_details ALTER COLUMN latitude SET DATA TYPE FLOAT USING NULLIF(latitude, '')::FLOAT",
                     "ALTER TABLE dim_store_details ALTER COLUMN country_code SET DATA TYPE VARCHAR(2) USING country_code::VARCHAR(2)",
                     "ALTER TABLE dim_store_details ALTER COLUMN continent SET DATA TYPE VARCHAR(255) USING continent::VARCHAR(255)"
-
                 ])
 
             elif database_identifier == 'dim_products':
                 sql_statements.extend([
+                    "ALTER TABLE dim_products ADD COLUMN weight_class VARCHAR(20)",
+                    "UPDATE dim_products SET weight_class = CASE \
+                        WHEN weight < 2 THEN 'Light' \
+                        WHEN weight >= 2 AND weight < 40 THEN 'Mid_Sized' \
+                        WHEN weight >= 40 AND weight < 140 THEN 'Heavy' \
+                        ELSE 'Truck_Required' END",
                     "ALTER TABLE dim_products ALTER COLUMN product_price TYPE FLOAT USING NULLIF(replace(replace(product_price::text, '£', ''), ',', ''), '')::FLOAT",
                     "ALTER TABLE dim_products ALTER COLUMN weight TYPE FLOAT USING weight::FLOAT",
-                    "ALTER TABLE dim_products ALTER COLUMN \"EAN\" TYPE VARCHAR(13)",
+                    "UPDATE dim_products SET \"EAN\" = SUBSTRING(\"EAN\" FROM 1 FOR 13)",
                     "ALTER TABLE dim_products ALTER COLUMN product_code TYPE VARCHAR(11)",
                     "ALTER TABLE dim_products ALTER COLUMN date_added TYPE DATE USING date_added::DATE",
                     "ALTER TABLE dim_products ALTER COLUMN uuid TYPE UUID USING uuid::UUID",
@@ -239,12 +245,13 @@ class DatabaseConnector:
 
             elif database_identifier == 'dim_date_times':
                 sql_statements.extend([
-                    "ALTER TABLE dim_date_times ALTER COLUMN month TYPE VARCHAR(12)",
-                    "ALTER TABLE dim_date_times ALTER COLUMN year TYPE VARCHAR(30)",
-                    "ALTER TABLE dim_date_times ALTER COLUMN day TYPE VARCHAR(31)",
-                    "DELETE FROM dim_date_times WHERE LENGTH(time_period) > 5",
-                    "DELETE FROM dim_date_times WHERE NOT (LENGTH(date_uuid) = 36 AND SUBSTRING(date_uuid FROM 9 FOR 1) = '-' AND SUBSTRING(date_uuid FROM 14 FOR 1) = '-' AND SUBSTRING(date_uuid FROM 19 FOR 1) = '-' AND SUBSTRING(date_uuid FROM 24 FOR 1) = '-')",
-                    "ALTER TABLE dim_date_times ALTER COLUMN date_uuid TYPE UUID USING NULLIF(date_uuid, '')::UUID",
+                    "DELETE FROM dim_date_times WHERE LENGTH(month::TEXT) > 2",
+                    "DELETE FROM dim_date_times WHERE LENGTH(time_period) > 9",
+                    "ALTER TABLE dim_date_times ALTER COLUMN month TYPE VARCHAR(2)",
+                    "ALTER TABLE dim_date_times ALTER COLUMN year TYPE VARCHAR(4)",
+                    "ALTER TABLE dim_date_times ALTER COLUMN day TYPE VARCHAR(2)",
+                    "ALTER TABLE dim_date_times ALTER COLUMN time_period TYPE VARCHAR(9)",
+                    "ALTER TABLE dim_date_times ALTER COLUMN date_uuid TYPE UUID USING NULLIF(date_uuid, '')::UUID"
                 ])
 
             elif database_identifier == 'dim_card_details':
@@ -254,7 +261,8 @@ class DatabaseConnector:
                     "UPDATE dim_card_details SET date_payment_confirmed = CASE WHEN date_payment_confirmed::text ~ '^\s*$' THEN NULL ELSE date_payment_confirmed::DATE END",
                     "ALTER TABLE dim_card_details ALTER COLUMN card_number TYPE VARCHAR(16)",
                     "ALTER TABLE dim_card_details ALTER COLUMN expiry_date TYPE VARCHAR(5)",
-                    "ALTER TABLE dim_card_details ALTER COLUMN date_payment_confirmed TYPE DATE"
+                    "ALTER TABLE dim_card_details ALTER COLUMN date_payment_confirmed TYPE DATE",
+                    "DELETE FROM dim_card_details WHERE card_number IS NULL OR expiry_date IS NULL OR date_payment_confirmed IS NULL"
                 ])
 
             elif database_identifier == 'orders_table':
