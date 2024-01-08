@@ -42,16 +42,20 @@ else:
 cleaned_store_data = data_cleaner.clean_store_data(
     data_extractor_data)
 db_local_con.test_db_upload(cleaned_store_data, 'dim_store_details')
+
+
 # products data
 s3_adress = 's3://data-handling-public/products.csv'
 df_from_extractor = data_extractor.extract_from_s3(s3_adress)
 cleaned_products_data = data_cleaner.clean_products_data(df_from_extractor)
 db_local_con.test_db_upload(cleaned_products_data, 'dim_products')
 
+
 # orders data
 df_from_db2 = data_extractor.read_rds_table('orders_table')
 cleaned_orders_data = data_cleaner.clean_orders_data(df_from_db2)
 db_local_con.test_db_upload(cleaned_orders_data, 'orders_table')
+
 
 # date times
 json_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"

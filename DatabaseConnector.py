@@ -112,11 +112,9 @@ class DatabaseConnector:
             print(f"Cleaning method for table '{table_name}' not found.")
             return
 
-        if table_name not in metadata.tables:
-            print(f"Table '{table_name}' does not exist. Creating...")
-            cleaned_df = clean_method(data_cleaner)
-            cleaned_df.head(0).to_sql(
-                table_name, self.db_engine, if_exists='replace', index=False)
+        cleaned_df = clean_method(data_cleaner)
+        cleaned_df.head(0).to_sql(
+            table_name, self.db_engine, if_exists='replace', index=False)
 
         metadata.reflect(bind=self.db_engine)
         table = metadata.tables[table_name]
@@ -184,9 +182,9 @@ class DatabaseConnector:
                     "UPDATE orders_table SET product_code = LEFT(product_code, 10)",
                     "ALTER TABLE orders_table ALTER COLUMN date_uuid TYPE UUID USING date_uuid::UUID",
                     "ALTER TABLE orders_table ALTER COLUMN user_uuid TYPE UUID USING user_uuid::UUID",
-                    "ALTER TABLE orders_table ALTER COLUMN card_number TYPE VARCHAR(16)",
-                    "ALTER TABLE orders_table ALTER COLUMN store_code TYPE VARCHAR(10)",
-                    "ALTER TABLE orders_table ALTER COLUMN product_code TYPE VARCHAR(10)",
+                    "ALTER TABLE orders_table ALTER COLUMN card_number TYPE VARCHAR(19)",
+                    "ALTER TABLE orders_table ALTER COLUMN store_code TYPE VARCHAR(12)",
+                    "ALTER TABLE orders_table ALTER COLUMN product_code TYPE VARCHAR(11)",
                     "UPDATE orders_table SET product_quantity = NULL WHERE LENGTH(product_quantity) > 5",
                     "ALTER TABLE orders_table ALTER COLUMN product_quantity TYPE SMALLINT USING product_quantity::SMALLINT",
                 ])
@@ -233,11 +231,11 @@ class DatabaseConnector:
                         WHEN weight >= 2 AND weight < 40 THEN 'Mid_Sized' \
                         WHEN weight >= 40 AND weight < 140 THEN 'Heavy' \
                         ELSE 'Truck_Required' END",
-                    "ALTER TABLE dim_products ALTER COLUMN product_price TYPE FLOAT USING NULLIF(replace(replace(product_price::text, '£', ''), ',', ''), '')::FLOAT",
-                    "ALTER TABLE dim_products ALTER COLUMN weight TYPE FLOAT USING weight::FLOAT",
+                    "ALTER TABLE dim_products ALTER COLUMN product_price TYPE DOUBLE PRECISION USING product_price::DOUBLE PRECISION",
+                    "ALTER TABLE dim_products ALTER COLUMN weight TYPE DOUBLE PRECISION USING weight::DOUBLE PRECISION",
                     "UPDATE dim_products SET \"EAN\" = SUBSTRING(\"EAN\" FROM 1 FOR 13)",
                     "ALTER TABLE dim_products ALTER COLUMN product_code TYPE VARCHAR(11)",
-                    "ALTER TABLE dim_products ALTER COLUMN date_added TYPE DATE USING date_added::DATE",
+                    "ALTER TABLE dim_products ALTER COLUMN date_added TYPE TIMESTAMP USING date_added::TIMESTAMP",
                     "ALTER TABLE dim_products ALTER COLUMN uuid TYPE UUID USING uuid::UUID",
                     "ALTER TABLE dim_products RENAME COLUMN removed TO still_available",
                     "ALTER TABLE dim_products ALTER COLUMN still_available TYPE BOOLEAN USING CASE WHEN still_available = 'Still_avaliable' THEN TRUE ELSE FALSE END"
