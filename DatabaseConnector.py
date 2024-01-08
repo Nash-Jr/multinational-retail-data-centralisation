@@ -177,15 +177,11 @@ class DatabaseConnector:
                 f"DELETE FROM {'dim_users_table'} WHERE date_of_birth = 'KBTI';")
             if database_identifier == 'orders_table':
                 sql_statements.extend([
-                    "UPDATE orders_table SET card_number = LEFT(card_number, 16)",
-                    "UPDATE orders_table SET store_code = LEFT(store_code, 10)",
-                    "UPDATE orders_table SET product_code = LEFT(product_code, 10)",
                     "ALTER TABLE orders_table ALTER COLUMN date_uuid TYPE UUID USING date_uuid::UUID",
                     "ALTER TABLE orders_table ALTER COLUMN user_uuid TYPE UUID USING user_uuid::UUID",
                     "ALTER TABLE orders_table ALTER COLUMN card_number TYPE VARCHAR(19)",
                     "ALTER TABLE orders_table ALTER COLUMN store_code TYPE VARCHAR(12)",
                     "ALTER TABLE orders_table ALTER COLUMN product_code TYPE VARCHAR(11)",
-                    "UPDATE orders_table SET product_quantity = NULL WHERE LENGTH(product_quantity) > 5",
                     "ALTER TABLE orders_table ALTER COLUMN product_quantity TYPE SMALLINT USING product_quantity::SMALLINT",
                 ])
             elif database_identifier == 'dim_users_table':

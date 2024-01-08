@@ -191,20 +191,20 @@ class DataCleaning:
         # Drop rows if all columns have missing values
         cleaned_orders_df = cleaned_orders_df.dropna(how='all')
 
-        for col in cleaned_orders_df.columns:
-            if pd.api.types.is_numeric_dtype(cleaned_orders_df[col]):
-                # Handle missing values and remove non-numeric characters
-                cleaned_orders_df[col] = cleaned_orders_df[col].apply(
-                    lambda x: re.sub(r'\D', '', str(x)) if pd.notnull(x) else x
-                )
-            elif pd.api.types.is_datetime64_any_dtype(cleaned_orders_df[col]):
-                # Convert to datetime and handle missing values
-                cleaned_orders_df[col] = pd.to_datetime(
-                    cleaned_orders_df[col], errors='coerce')
-            elif pd.api.types.is_string_dtype(cleaned_orders_df[col]):
-                # Strip whitespace and convert to uppercase
-                cleaned_orders_df[col] = cleaned_orders_df[col].str.strip(
-                ).str.upper()
+        # for col in cleaned_orders_df.columns:
+        #     if pd.api.types.is_numeric_dtype(cleaned_orders_df[col]):
+        #         # Handle missing values and remove non-numeric characters
+        #         cleaned_orders_df[col] = cleaned_orders_df[col].apply(
+        #             lambda x: re.sub(r'\D', '', str(x)) if pd.notnull(x) else x
+        #         )
+        #     elif pd.api.types.is_datetime64_any_dtype(cleaned_orders_df[col]):
+        #         # Convert to datetime and handle missing values
+        #         cleaned_orders_df[col] = pd.to_datetime(
+        #             cleaned_orders_df[col], errors='coerce')
+        #     elif pd.api.types.is_string_dtype(cleaned_orders_df[col]):
+        #         # Strip whitespace and convert to uppercase
+        #         cleaned_orders_df[col] = cleaned_orders_df[col].str.strip(
+        #         ).str.upper()
 
         # Drop specified columns and reset index
         cleaned_orders_df = cleaned_orders_df.drop(
